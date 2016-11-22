@@ -6,14 +6,16 @@ package main
 import (
 	"flag"
 	"fmt"
-	"git.apache.org/thrift.git/lib/go/thrift"
-	"github.com/dragonfax/evernote-sdk-go/userstore"
 	"math"
 	"net"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+
+	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/dragonfax/evernote-sdk-go/types"
+	"github.com/dragonfax/evernote-sdk-go/userstore"
 )
 
 func Usage() {
@@ -150,7 +152,7 @@ func main() {
 		}
 		argvalue2 := byte(tmp2)
 		value2 := argvalue2
-		fmt.Print(client.CheckVersion(value0, value1, value2))
+		fmt.Print(client.CheckVersion(value0, int16(value1), int16(value2)))
 		fmt.Print("\n")
 		break
 	case "getBootstrapInfo":
@@ -321,7 +323,7 @@ func main() {
 			Usage()
 			return
 		}
-		argvalue0 := userstore.ServiceLevel(tmp0)
+		argvalue0 := types.ServiceLevel(tmp0)
 		value0 := argvalue0
 		fmt.Print(client.GetAccountLimits(value0))
 		fmt.Print("\n")
