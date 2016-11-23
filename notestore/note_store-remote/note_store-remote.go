@@ -7,11 +7,9 @@ import (
 	"flag"
 	"fmt"
 	"math"
-	"net"
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
 	"github.com/dragonfax/evernote-sdk-go/notestore"
@@ -102,63 +100,32 @@ func Usage() {
 
 func main() {
 	flag.Usage = Usage
-	var host string
-	var port int
 	var protocol string
 	var urlString string
 	var framed bool
-	var useHttp bool
-	var parsedUrl url.URL
+	var parsedUrl *url.URL
 	var trans thrift.TTransport
 	_ = strconv.Atoi
 	_ = math.Abs
 	flag.Usage = Usage
-	flag.StringVar(&host, "h", "localhost", "Specify host and port")
-	flag.IntVar(&port, "p", 9090, "Specify port")
 	flag.StringVar(&protocol, "P", "binary", "Specify the protocol (binary, compact, simplejson, json)")
 	flag.StringVar(&urlString, "u", "", "Specify the url")
 	flag.BoolVar(&framed, "framed", false, "Use framed transport")
-	flag.BoolVar(&useHttp, "http", false, "Use http")
 	flag.Parse()
 
 	if len(urlString) > 0 {
-		parsedUrl, err := url.Parse(urlString)
+		var err error
+		parsedUrl, err = url.Parse(urlString)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error parsing URL: ", err)
 			flag.Usage()
 		}
-		host = parsedUrl.Host
-		useHttp = len(parsedUrl.Scheme) <= 0 || parsedUrl.Scheme == "http"
-	} else if useHttp {
-		_, err := url.Parse(fmt.Sprint("http://", host, ":", port))
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error parsing URL: ", err)
-			flag.Usage()
-		}
+	} else {
+		panic("no url provided")
 	}
 
 	cmd := flag.Arg(0)
-	var err error
-	if useHttp {
-		trans, err = thrift.NewTHttpClient(parsedUrl.String())
-	} else {
-		portStr := fmt.Sprint(port)
-		if strings.Contains(host, ":") {
-			host, portStr, err = net.SplitHostPort(host)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "error with host:", err)
-				os.Exit(1)
-			}
-		}
-		trans, err = thrift.NewTSocket(net.JoinHostPort(host, portStr))
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "error resolving address:", err)
-			os.Exit(1)
-		}
-		if framed {
-			trans = thrift.NewTFramedTransport(trans)
-		}
-	}
+	trans, err := thrift.NewTHttpPostClient(parsedUrl.String())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error creating transport", err)
 		os.Exit(1)
@@ -185,7 +152,7 @@ func main() {
 	}
 	client := notestore.NewNoteStoreClientFactory(trans, protocolFactory)
 	if err := trans.Open(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error opening socket to ", host, ":", port, " ", err)
+		fmt.Fprintln(os.Stderr, "Error opening transport")
 		os.Exit(1)
 	}
 
